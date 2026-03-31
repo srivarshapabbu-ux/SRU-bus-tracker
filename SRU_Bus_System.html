@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SRU - Institutional Bus Portal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #2b458c; }
+        #map { height: 100%; width: 100%; border-radius: 2rem; z-index: 1; }
+        .active-tab { background-color: #2563eb !important; color: white !important; font-weight: 700; }
+        .tab-content { display: none; height: 100%; width: 100%; }
+        .tab-content.active { display: flex; }
+        ::-webkit-scrollbar { width: 5px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        
+        .sru-header { background-color: #2b458c; color: white; }
+        .notice-bar { background-color: #ffffff; color: #dc2626; font-weight: bold; border-top: 2px solid #2b458c; border-bottom: 2px solid #2b458c; }
+        .login-card { background: white; border-radius: 40px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        .btn-portal { border: 1px solid rgba(255,255,255,0.3); background: rgba(255,255,255,0.1); padding: 8px 18px; border-radius: 8px; font-weight: bold; font-size: 13px; }
+        .btn-portal:hover { background: rgba(255,255,255,0.2); }
+        .table-header { background-color: #1e293b; color: white; }
+    </style>
+</head>
+<body class="overflow-x-hidden">
+
+    <!-- 1. LOGIN PORTAL REPLICA -->
+    <div id="portal-screen" class="min-h-screen flex flex-col bg-[#2b458c]">
+        <header class="sru-header px-10 py-6 flex justify-between items-center">
+            <div class="flex items-center gap-4">
+                <span class="text-6xl font-black italic tracking-tighter">sru</span>
+                <div class="h-10 w-px bg-white/30 mx-2"></div>
+                <span class="text-xl font-bold tracking-widest uppercase text-xs">SR University</span>
+            </div>
+            <div class="flex gap-3">
+                <button onclick="setPortal('staff')" class="btn-staff btn-portal">STAFF</button>
+                <button onclick="setPortal('student')" class="btn-student btn-portal bg-white/20 border-white text-white">STUDENT</button>
+                <button onclick="setPortal('parent')" class="btn-parent btn-portal">PARENT</button>
+            </div>
+        </header>
+
+        <div class="notice-bar py-2 px-4 text-center text-xs uppercase">
+            <marquee>All users must login using @sru.edu.in domain. Morning trip arrivals and Evening departure notifications are now active.</marquee>
+        </div>
+
+        <div class="flex-1 bg-white p-10">
+            <h2 class="text-4xl font-bold text-[#2b458c] text-center mb-12 uppercase tracking-tighter">Circulars / Daily Updates</h2>
+            
+            <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-12 items-start">
+                <div class="login-card p-10 border border-slate-100 flex flex-col items-center">
+                    <a href="#" class="text-blue-600 font-bold underline text-lg text-center leading-tight mb-4 tracking-tighter uppercase italic">Institutional Login Portal</a>
+                    <h3 class="text-2xl font-bold text-slate-800 mb-8 uppercase" id="login-header">Student Login</h3>
+                    
+                    <div class="w-full space-y-6 text-sm">
+                        <div>
+                            <label class="font-bold text-slate-700" id="email-label">Enrolment No / Email</label>
+                            <input id="input-email" type="text" placeholder="user@sru.edu.in" class="w-full p-4 border rounded-xl mt-1 outline-none focus:ring-2 ring-blue-500 font-medium">
+                        </div>
+                        <div>
+                            <label class="font-bold text-slate-700">Password</label>
+                            <input id="input-pass" type="password" placeholder="Enter Password" class="w-full p-4 border rounded-xl mt-1 outline-none focus:ring-2 ring-blue-500">
+                        </div>
+                        <button onclick="handleLogin()" class="w-full py-4 bg-[#2b458c] text-white rounded-xl font-bold text-lg hover:brightness-125 transition-all shadow-lg mt-4 uppercase tracking-widest">Sign in</button>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-2 overflow-hidden rounded-xl border border-slate-200">
+                    <table class="w-full text-left text-[11px] uppercase font-bold">
+                        <thead>
+                            <tr class="table-header">
+                                <th class="p-4">S.No</th>
+                                <th class="p-4">Category</th>
+                                <th class="p-4">Description</th>
+                                <th class="p-4 text-center">View</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-[#f8fafc] text-[#2b458c]">
+                            <tr class="border-b"> <td class="p-4">1</td> <td class="p-4">Notification</td> <td class="p-4">PARENTS AND STUDENTS WILL BE NOTIFIED 15 MIN BEFORE MAIN JUNCTIONS</td> <td class="p-4 text-center">📄</td> </tr>
+                            <tr class="border-b"> <td class="p-4">2</td> <td class="p-4">Schedule</td> <td class="p-4">EVENING DEPARTURE PROTOCOL STARTS AT 05:00 PM - NOTIFYING MAIN STOPS</td> <td class="p-4 text-center">📄</td> </tr>
+                            <tr class="border-b"> <td class="p-4">3</td> <td class="p-4">Staff</td> <td class="p-4">STAFF BUS STATUS MODIFICATION NOW SYNCED WITH STUDENT LIVE MAPS</td> <td class="p-4 text-center">📄</td> </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. TRACKING DASHBOARD -->
+    <div id="main-app" class="hidden flex h-screen w-full bg-slate-50 p-4 gap-4 animate-in fade-in duration-500">
+        <aside class="w-72 bg-white rounded-[2.5rem] shadow-sm border p-8 flex flex-col justify-between shrink-0">
+            <div>
+                <div class="flex items-center gap-3 mb-12">
+                    <div class="p-2 bg-blue-600 text-white rounded-xl font-bold shadow-lg italic">sru</div>
+                    <h1 class="text-2xl font-black italic tracking-tighter">Transit</h1>
+                </div>
+                <nav class="space-y-2">
+                    <button onclick="switchTab('map-view', this)" class="sidebar-btn active-tab w-full text-left p-4 rounded-2xl flex items-center gap-3 transition-all">🗺️ Live Tracker</button>
+                    <button id="nav-fleet" onclick="switchTab('fleet-view', this)" class="sidebar-btn w-full text-left p-4 rounded-2xl text-slate-500 flex items-center gap-3 transition-all hidden uppercase font-black text-[10px] tracking-widest">📋 Manage Fleet</button>
+                    <button onclick="switchTab('route-view', this)" class="sidebar-btn w-full text-left p-4 rounded-2xl text-slate-500 flex items-center gap-3 transition-all uppercase text-[10px] font-black tracking-widest">Tracks Info</button>
+                    <button onclick="location.reload()" class="w-full text-left p-4 mt-12 rounded-2xl text-red-500 font-bold flex items-center gap-3 hover:bg-red-50">🚪 Logout</button>
+                </nav>
+            </div>
+            
+            <div class="p-4 bg-slate-50 rounded-3xl border border-slate-100 flex items-center gap-3">
+                <div id="user-badge" class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center text-white font-bold shadow-md uppercase">?</div>
+                <div class="overflow-hidden">
+                    <p id="user-display-id" class="text-xs font-bold truncate italic">ID</p>
+                    <p id="user-display-role" class="text-[9px] text-blue-600 font-bold uppercase tracking-tighter">Role</p>
+                </div>
+            </div>
+        </aside>
+
+        <main class="flex-1 flex overflow-hidden">
+            <div id="map-view" class="tab-content active gap-4">
+                <div class="w-80 bg-white rounded-[2.5rem] border flex flex-col overflow-hidden shrink-0">
+                    <div class="p-8 border-b text-center">
+                        <p class="text-blue-600 text-[10px] font-bold uppercase tracking-widest mb-1">Live Campus Fleet</p>
+                        <h2 id="trip-dir-label" class="text-xl font-black text-slate-800 uppercase tracking-tighter italic">Tracking Status</h2>
+                    </div>
+                    <div id="tracking-list" class="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/50"></div>
+                </div>
+                <div class="flex-1 relative">
+                    <div id="map"></div>
+                    <div id="notif-box" class="fixed top-12 right-12 z-[2000] pointer-events-none space-y-4"></div>
+                </div>
+            </div>
+
+            <div id="fleet-view" class="tab-content w-full bg-white rounded-[2.5rem] border flex-col overflow-hidden">
+                <div class="p-10 border-b flex justify-between items-center bg-white sticky top-0 z-20">
+                    <div>
+                        <h2 class="text-3xl font-black text-slate-800 uppercase italic">Fleet Authority</h2>
+                        <p class="text-slate-400 font-medium italic">Simulate Morning (To Campus) or Evening (From Campus) trips below.</p>
+                    </div>
+                    <button onclick="addNewBus()" class="bg-blue-600 text-white px-8 py-3 rounded-2xl font-bold shadow-xl hover:scale-105 transition-all text-[10px] tracking-widest uppercase">+ Add New Vehicle</button>
+                </div>
+                <div class="flex-1 overflow-y-auto">
+                    <table class="w-full text-left">
+                        <thead class="bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-widest sticky top-0 z-10">
+                            <tr><th class="p-8">Bus ID</th><th>Driver Name</th><th>Current Status</th><th>Assigned Route</th><th class="text-right p-8">Simulate & Control</th></tr>
+                        </thead>
+                        <tbody id="fleet-table-body" class="text-sm font-medium"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div id="route-view" class="tab-content w-full bg-white rounded-[2.5rem] border p-12 flex-col overflow-y-auto">
+                <h2 class="text-3xl font-black mb-10 text-[#2b458c] uppercase italic">Junction Tracking Information</h2>
+                <div id="route-grid" class="grid grid-cols-2 gap-10"></div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        const CAMPUS_COORD = { lat: 17.9689, lng: 79.5941 }; 
+        let buses = JSON.parse(localStorage.getItem('sru_final_enterprise_db')) || [];
+        const routes = [
+            { id: "R1", name: "Route 1 - City Express", stops: ["Main Station", "Subedari Junction", "Campus Entrance"], mainJunction: "Subedari Junction" },
+            { id: "R2", name: "Route 2 - Shuttle Service", stops: ["Staff Quarters", "JNTU Road", "Campus Entrance"], mainJunction: "JNTU Road" },
+            { id: "R3", name: "Route 3 - Kazipet Link", stops: ["NIT Junction", "Bridge Road", "Campus Entrance"], mainJunction: "NIT Junction" }
+        ];
+
+        if(buses.length === 0) {
+            const names = ["Raju", "Suresh", "Venkat", "Mahesh", "Srinivas", "Kiran", "Rajesh", "Pavan", "Naresh", "Anil"];
+            for(let i=1; i<=50; i++) {
+                buses.push({ 
+                    id: `SRU-${String(i).padStart(3, '0')}`, 
+                    driver: names[i % 10], 
+                    status: (i <= 25) ? 'active' : 'inactive', 
+                    route: routes[i % 3].name, 
+                    lat: 17.93 + (Math.random() * 0.08), 
+                    lng: 79.54 + (Math.random() * 0.08), 
+                    eta: 25 
+                });
+            }
+            save();
+        }
+
+        const map = L.map('map').setView([17.968, 79.594], 14);
+        L.marker([CAMPUS_COORD.lat, CAMPUS_COORD.lng]).addTo(map).bindPopup("<b>SR UNIVERSITY CAMPUS</b>");
+        let markers = {};
+
+        function setPortal(type) {
+            document.querySelectorAll('.btn-portal').forEach(b => b.classList.remove('bg-white/20', 'border-white', 'text-white'));
+            document.querySelector(`.btn-${type}`).classList.add('bg-white/20', 'border-white', 'text-white');
+            const header = document.getElementById('login-header');
+            const emailInp = document.getElementById('input-email');
+
+            if(type === 'staff') { header.innerText = "Staff Login"; emailInp.placeholder = "admin@sru.edu.in"; }
+            else if(type === 'parent') { header.innerText = "Parent Login"; emailInp.placeholder = "parent@sru.edu.in"; }
+            else { header.innerText = "Student Login"; emailInp.placeholder = "htno@sru.edu.in"; }
+        }
+
+        function handleLogin() {
+            const email = document.getElementById('input-email').value.trim().toLowerCase();
+            const pass = document.getElementById('input-pass').value;
+
+            if(!email.endsWith("@sru.edu.in")) {
+                alert("Login Error: All accounts must use @sru.edu.in email domain.");
+                return;
+            }
+
+            if (email.startsWith("admin") && pass === "admin123") { executeEntry('admin', "ADMINISTRATOR"); }
+            else if (email.startsWith("parent") && pass === "parent123") { executeEntry('parent', "PARENT"); }
+            else if (pass === "student123") { executeEntry('student', email.split('@')[0].toUpperCase()); }
+            else { alert("Login Error: Credentials invalid."); }
+        }
+
+        function executeEntry(role, idLabel) {
+            document.getElementById('portal-screen').classList.add('hidden');
+            document.getElementById('main-app').classList.remove('hidden');
+            document.getElementById('user-display-id').innerText = idLabel;
+            document.getElementById('user-display-role').innerText = role.toUpperCase();
+            document.getElementById('user-badge').innerText = role.substring(0, 2);
+            if(role === 'admin') document.getElementById('nav-fleet').classList.remove('hidden');
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+            setTimeout(() => map.invalidateSize(), 400);
+            renderAll();
+        }
+
+        function save() { localStorage.setItem('sru_final_enterprise_db', JSON.stringify(buses)); }
+
+        function switchTab(id, btn) {
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.sidebar-btn').forEach(b => b.classList.remove('active-tab'));
+            document.getElementById(id).classList.add('active');
+            btn.classList.add('active-tab');
+            if(id === 'map-view') setTimeout(() => map.invalidateSize(), 200);
+        }
+
+        function renderAll() { renderTracking(); renderFleet(); renderRoutes(); save(); }
+
+        function renderTracking() {
+            const list = document.getElementById('tracking-list'); list.innerHTML = "";
+            buses.forEach(bus => {
+                const card = document.createElement('div');
+                card.onclick = () => { if(bus.status === 'active') { map.flyTo([bus.lat, bus.lng], 16); markers[bus.id].openPopup(); } };
+                card.className = "bg-white p-5 rounded-[2rem] border border-slate-50 shadow-sm cursor-pointer hover:border-blue-400 transition-all";
+                card.innerHTML = `<div class="flex justify-between items-center mb-1 text-[11px] font-black"><h4>${bus.id}</h4><span class="px-3 py-1 rounded-full text-[9px] font-bold ${bus.status === 'active' ? 'bg-green-50 text-green-600' : 'bg-slate-50 text-slate-400'} uppercase">${bus.status}</span></div><p class="text-[9px] font-bold text-blue-600 mb-2 uppercase tracking-tight">📍 ${bus.route}</p><div class="flex justify-between text-[10px] font-bold text-slate-400 uppercase italic"><span>ETA: <b class="text-blue-700">${bus.eta}m</b></span><span class="truncate ml-2 opacity-60">${bus.driver}</span></div>`;
+                list.appendChild(card);
+                if (bus.status === 'active') {
+                    if (!markers[bus.id]) markers[bus.id] = L.marker([bus.lat, bus.lng]).addTo(map).bindPopup(bus.id);
+                    else markers[bus.id].setLatLng([bus.lat, bus.lng]);
+                } else if (markers[bus.id]) { map.removeLayer(markers[bus.id]); delete markers[bus.id]; }
+            });
+        }
+
+        function renderFleet() {
+            const tbody = document.getElementById('fleet-table-body'); tbody.innerHTML = "";
+            buses.forEach(bus => {
+                const tr = document.createElement('tr');
+                tr.className = "border-b border-slate-50 hover:bg-slate-50 transition-colors";
+                tr.innerHTML = `<td class="p-8 font-black text-slate-800 text-xs">${bus.id}</td><td class="text-slate-400 font-bold uppercase text-[9px]">${bus.driver}</td><td><select onchange="updateBusStatus('${bus.id}', this.value)" class="text-[10px] font-black px-4 py-2 rounded-2xl border outline-none cursor-pointer ${bus.status === 'active' ? 'bg-green-50 text-green-600' : 'bg-slate-100 text-slate-400'}"><option value="active" ${bus.status === 'active' ? 'selected' : ''}>Active</option><option value="inactive" ${bus.status === 'inactive' ? 'selected' : ''}>Inactive</option></select></td><td class="text-blue-600 font-black text-[10px] truncate max-w-[200px]">🛤️ ${bus.route}</td><td class="p-8 text-right space-x-2"><button onclick="simulateMove('${bus.id}', 'morning')" class="px-3 py-1.5 bg-blue-600 text-white rounded-xl text-[9px] font-black hover:scale-105 transition-all">MORNING</button><button onclick="simulateMove('${bus.id}', 'evening')" class="px-3 py-1.5 bg-slate-800 text-white rounded-xl text-[9px] font-black hover:scale-105 transition-all">EVENING</button><button onclick="deleteBus('${bus.id}')" class="text-slate-200 hover:text-red-500 font-black text-xl ml-4 transition-colors">🗑</button></td>`;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderRoutes() {
+            const grid = document.getElementById('route-grid'); grid.innerHTML = "";
+            routes.forEach(route => {
+                const live = buses.filter(b => b.route === route.name && b.status === 'active');
+                const div = document.createElement('div');
+                div.className = `p-10 border rounded-[3rem] transition-all bg-white shadow-sm ${live.length > 0 ? 'border-blue-500 shadow-xl' : 'border-slate-100 opacity-60'}`;
+                div.innerHTML = `<div class="flex justify-between items-center mb-8 text-slate-800"><h4 class="font-black text-xl uppercase tracking-tighter italic underline decoration-blue-500 decoration-4 underline-offset-8">${route.name}</h4><span class="text-[10px] bg-blue-600 text-white px-4 py-1 rounded-full font-black tracking-widest">${live.length} LIVE ON TRACK</span></div><div class="space-y-4 mb-8">${route.stops.map(s => `<div class="flex items-center gap-4 text-[12px] font-bold ${s === route.mainJunction ? 'text-blue-600 italic border-b-2 border-blue-100' : 'text-slate-400'}"><span>${s === route.mainJunction ? '🔔' : '📍'}</span> ${s}</div>`).join('')}</div><div class="pt-8 border-t border-slate-50 space-y-4"><p class="text-[9px] font-black uppercase text-slate-300 tracking-[0.2em]">Active Fleet Details:</p><div class="space-y-2">${live.length > 0 ? live.map(b => `<div class="bg-blue-50/50 p-4 rounded-2xl border border-blue-100 flex justify-between items-center"><div><p class="text-[11px] font-black text-blue-800">${b.id}</p><p class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Driver: ${b.driver}</p></div><div class="text-right font-black text-blue-600 text-[11px] italic underline underline-offset-4 decoration-blue-200 uppercase">ETA: ${b.eta}m</div></div>`).join('') : '<p class="text-[10px] font-bold text-slate-300 italic tracking-tighter">No active fleet.</p>'}</div></div>`;
+                grid.appendChild(div);
+            });
+        }
+
+        function updateBusStatus(id, stat) { const b = buses.find(bus => bus.id === id); if(b) { b.status = stat; renderAll(); } }
+
+        function simulateMove(id, direction) {
+            const b = buses.find(bus => bus.id === id); if(b.status !== 'active') return alert("Operation Error: Vehicle must be Active to simulate.");
+            switchTab('map-view', document.querySelector('.sidebar-btn'));
+            const r = routes.find(rd => rd.name === b.route);
+            document.getElementById('trip-dir-label').innerText = direction === 'morning' ? "Trip: To Campus" : "Trip: From Campus";
+            
+            if(direction === 'evening') triggerNotif(b.id, "Campus Departure", "leaving");
+
+            let s = 0; const t = setInterval(() => {
+                if(direction === 'morning') {
+                    const latDiff = (CAMPUS_COORD.lat - b.lat) / 10;
+                    const lngDiff = (CAMPUS_COORD.lng - b.lng) / 10;
+                    b.lat += latDiff; b.lng += lngDiff; b.eta -= 2;
+                } else {
+                    b.lat -= 0.0004; b.lng -= 0.0004; b.eta += 2;
+                }
+                
+                if(b.eta === 15) triggerNotif(b.id, r.mainJunction, direction === 'morning' ? "approaching" : "reaching");
+                if(s > 15) clearInterval(t);
+                renderAll(); s++;
+            }, 1000);
+        }
+
+        function triggerNotif(id, stop, type) {
+            const area = document.getElementById('notif-box'); const el = document.createElement('div');
+            el.className = "bg-white border-l-[10px] border-blue-600 p-8 rounded-[2.5rem] shadow-2xl flex items-center gap-6 min-w-[420px] pointer-events-auto animate-bounce";
+            el.innerHTML = `<span class="text-4xl font-black">📢</span><div><p class="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">Transit Notification</p><p class="text-base font-black text-slate-800 leading-tight italic decoration-blue-100 decoration-4 underline underline-offset-8 uppercase tracking-tighter">Bus ${id} is ${type} ${stop}!</p></div>`;
+            area.appendChild(el); setTimeout(() => el.remove(), 8000);
+        }
+
+        function addNewBus() {
+            const name = prompt("Enter Driver Name:");
+            const route = prompt("Enter Route Name:");
+            if(!name || !route) return;
+            const id = `SRU-${String(buses.length + 1).padStart(3, '0')}`;
+            buses.push({ id, driver: name, status: 'inactive', route: route, lat: 17.93, lng: 79.54, eta: 20 });
+            renderAll();
+        }
+
+        function deleteBus(id) { if(confirm("Confirm removal of " + id + "?")) { buses = buses.filter(b => b.id !== id); renderAll(); } }
+    </script>
+</body>
+</html>
